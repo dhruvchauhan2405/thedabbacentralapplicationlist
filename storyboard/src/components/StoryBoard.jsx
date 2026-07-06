@@ -953,11 +953,47 @@ const StoryBoard = ({ isPublish, isFetchAllCustomers }) => {
               style={{
                 display: "flex",
                 justifyContent: "center",
+                gap: "10px",
                 marginTop: "15px",
+                flexWrap: "wrap",
               }}
             >
               <button
-                style={{ ...buttonStyle, background: "#4CAF50", color: "#fff" }}
+                style={{
+                  ...buttonStyle,
+                  background: "#25D366",
+                  color: "#fff",
+                }}
+                onClick={() => {
+                  window.open(
+                    `https://wa.me/?text=${encodeURIComponent(generatedList)}`,
+                    "_blank",
+                  );
+                }}
+              >
+                💬 WhatsApp
+              </button>
+
+              <button
+                style={{
+                  ...buttonStyle,
+                  background: "#2196F3",
+                  color: "#fff",
+                }}
+                onClick={() => {
+                  navigator.clipboard.writeText(generatedList);
+                  alert("Copied!");
+                }}
+              >
+                📋 Copy
+              </button>
+
+              <button
+                style={{
+                  ...buttonStyle,
+                  background: "#4CAF50",
+                  color: "#fff",
+                }}
                 onClick={() => setGeneratedList(null)}
               >
                 Close
