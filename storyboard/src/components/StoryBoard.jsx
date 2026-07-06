@@ -52,6 +52,13 @@ const StoryBoard = ({ isPublish, isFetchAllCustomers }) => {
   const [mealType, setMealType] = useState("lunch");
   const [fetching, setFetching] = useState(false);
   const [generatedList, setGeneratedList] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [currentRouteIndex, setCurrentRouteIndex] = useState(0);
+  const routes = Object.keys(columns);
+  const [movingCard, setMovingCard] = useState(null);
+  const [showMoveModal, setShowMoveModal] = useState(false);
+
+  const currentRoute = routes[currentRouteIndex];
 
   const fetchData = async () => {
     try {
@@ -102,6 +109,80 @@ const StoryBoard = ({ isPublish, isFetchAllCustomers }) => {
     if (mealType) fetchData();
   }, [mealType, isFetchAllCustomers]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentRouteIndex >= routes.length) {
+      setCurrentRouteIndex(0);
+    }
+  }, [routes]);
+
+  console.log("Mobile", isMobile);
+
+  const reorderRoute = (route, fromIndex, toIndex) => {
+    if (fromIndex === toIndex) return;
+
+    const updatedCards = [...columns[route]];
+
+    const [moved] = updatedCards.splice(fromIndex, 1);
+
+    updatedCards.splice(toIndex, 0, moved);
+
+    setColumns((prev) => ({
+      ...prev,
+      [route]: updatedCards,
+    }));
+  };
+
+  const moveCardToRoute = (card, sourceRoute, destinationRoute) => {
+    if (sourceRoute === destinationRoute) return;
+
+    const sourceCards = [...columns[sourceRoute]];
+    const destinationCards = [...columns[destinationRoute]];
+
+    const sourceIndex = sourceCards.findIndex((c) => c.id === card.id);
+
+    if (sourceIndex === -1) return;
+
+    const [moved] = sourceCards.splice(sourceIndex, 1);
+
+    if (moved.mapLink) {
+      const existingIndex = destinationCards.findIndex(
+        (c) => c.mapLink === moved.mapLink,
+      );
+
+      if (existingIndex !== -1) {
+        destinationCards[existingIndex] = {
+          ...destinationCards[existingIndex],
+          customers: [
+            ...destinationCards[existingIndex].customers,
+            ...moved.customers,
+          ],
+        };
+      } else {
+        destinationCards.push(moved);
+      }
+    } else {
+      destinationCards.push(moved);
+    }
+
+    setColumns((prev) => ({
+      ...prev,
+      [sourceRoute]: sourceCards,
+      [destinationRoute]: destinationCards,
+    }));
+  };
+
   const onDragEnd = (result) => {
     const { source, destination } = result;
     if (!destination) return;
@@ -111,14 +192,8 @@ const StoryBoard = ({ isPublish, isFetchAllCustomers }) => {
 
     // Moving in the same column
     if (sourceCol === destCol) {
-      const updatedCards = [...columns[sourceCol]];
-      const [moved] = updatedCards.splice(source.index, 1);
-      updatedCards.splice(destination.index, 0, moved);
-
-      setColumns({
-        ...columns,
-        [sourceCol]: updatedCards,
-      });
+      reorderRoute(sourceCol, source.index, destination.index);
+      return;
     } else {
       // Moving to a different column
       const sourceCards = [...columns[sourceCol]];
@@ -320,206 +395,381 @@ const StoryBoard = ({ isPublish, isFetchAllCustomers }) => {
       }}
     >
       {/* Toggle Meal Type */}
-      <div
-        style={{
-          padding: "10px",
-          display: "flex",
-          gap: "10px",
-          alignItems: "center",
-          background: "#fff",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-        }}
-      >
-        <span style={{ fontWeight: "bold" }}>Choose Meal:</span>
-        <button
-          style={{
-            ...buttonStyle,
-            background: mealType === "lunch" ? "#2196F3" : "#ccc",
-            color: mealType === "lunch" ? "#fff" : "#000",
-          }}
-          onClick={() => setMealType("lunch")}
-          disabled={fetching}
-        >
-          Lunch
-        </button>
-        <button
-          style={{
-            ...buttonStyle,
-            background: mealType === "dinner" ? "#2196F3" : "#ccc",
-            color: mealType === "dinner" ? "#fff" : "#000",
-          }}
-          onClick={() => setMealType("dinner")}
-          disabled={fetching}
-        >
-          Dinner
-        </button>
-        <button
-          style={{
-            ...buttonStyle,
-            background: "#4CAF50",
-            color: "#fff",
-            marginLeft: "auto",
-          }}
-          onClick={generateList}
-          disabled={fetching}
-        >
-          Generate List
-        </button>
-        <button
-          onClick={async () => {
-            try {
-              const groupedCustomers = columns;
+      <div className="toolbar">
+        <div className="meal-section">
+          <span className="toolbar-label">Choose Meal</span>
 
-              // console.log("Grouped Customers: ", groupedCustomers);
-              let newdata = [];
-              Object.keys(groupedCustomers).forEach((key) => {
-                // console.log(`${key}: ${data[key]}`);
-                let singleRouteCustomers = groupedCustomers[key];
+          <div className="meal-buttons">
+            <button
+              style={{
+                ...buttonStyle,
+                background: mealType === "lunch" ? "#2196F3" : "#ccc",
+                color: mealType === "lunch" ? "#fff" : "#000",
+              }}
+              onClick={() => setMealType("lunch")}
+              disabled={fetching}
+            >
+              Lunch
+            </button>
 
-                singleRouteCustomers = singleRouteCustomers?.map(
-                  (locationCustomers, index) => {
-                    return locationCustomers?.customers?.map((customer) => ({
-                      ...customer,
-                      ...(mealType === "lunch"
-                        ? {
-                            lunchRoute: key,
-                            lunchRouteOrder: index * 100,
-                          }
-                        : {
-                            dinnerRoute: key,
-                            dinnerRouteOrder: index * 100,
-                          }),
-                    }));
+            <button
+              style={{
+                ...buttonStyle,
+                background: mealType === "dinner" ? "#2196F3" : "#ccc",
+                color: mealType === "dinner" ? "#fff" : "#000",
+              }}
+              onClick={() => setMealType("dinner")}
+              disabled={fetching}
+            >
+              Dinner
+            </button>
+          </div>
+        </div>
+        <div className="action-buttons">
+          <button
+            style={{
+              ...buttonStyle,
+              background: "#4CAF50",
+              color: "#fff",
+              marginLeft: "auto",
+            }}
+            onClick={generateList}
+            disabled={fetching}
+          >
+            Generate List
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const groupedCustomers = columns;
+
+                // console.log("Grouped Customers: ", groupedCustomers);
+                let newdata = [];
+                Object.keys(groupedCustomers).forEach((key) => {
+                  // console.log(`${key}: ${data[key]}`);
+                  let singleRouteCustomers = groupedCustomers[key];
+
+                  singleRouteCustomers = singleRouteCustomers?.map(
+                    (locationCustomers, index) => {
+                      return locationCustomers?.customers?.map((customer) => ({
+                        ...customer,
+                        ...(mealType === "lunch"
+                          ? {
+                              lunchRoute: key,
+                              lunchRouteOrder: index * 100,
+                            }
+                          : {
+                              dinnerRoute: key,
+                              dinnerRouteOrder: index * 100,
+                            }),
+                      }));
+                    },
+                  );
+                  console.log("Single Route Customers: ", singleRouteCustomers);
+
+                  newdata = [...newdata, ...singleRouteCustomers];
+                });
+                newdata = newdata?.flat();
+                const response = await fetch(
+                  "https://thedabbacentralapplication-vo2b.vercel.app/customers/route/publish",
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ newdata, mealType }), // sending board state
                   },
                 );
-                console.log("Single Route Customers: ", singleRouteCustomers);
-
-                newdata = [...newdata, ...singleRouteCustomers];
-              });
-              newdata = newdata?.flat();
-              const response = await fetch(
-                "https://thedabbacentralapplication-vo2b.vercel.app/customers/route/publish",
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ newdata, mealType }), // sending board state
-                },
-              );
-              const data = await response.json();
-              alert("✅ Publish triggered! Check backend logs.");
-              console.log("Publish response:", data);
-            } catch (err) {
-              console.error("❌ Publish failed", err);
-            }
-          }}
-          style={{
-            marginLeft: "10px",
-            background: "orange",
-            color: "white",
-            padding: "8px 16px",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-          }}
-          disabled={fetching || !isPublish || !isFetchAllCustomers}
-        >
-          Publish Route
-        </button>
+                const data = await response.json();
+                alert("✅ Publish triggered! Check backend logs.");
+                console.log("Publish response:", data);
+              } catch (err) {
+                console.error("❌ Publish failed", err);
+              }
+            }}
+            style={{
+              marginLeft: "10px",
+              background: "orange",
+              color: "white",
+              padding: "8px 16px",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+            disabled={fetching || !isPublish || !isFetchAllCustomers}
+          >
+            Publish Route
+          </button>
+        </div>
       </div>
 
       {/* Columns */}
-      <div
-        style={{
-          display: "flex",
-          overflowX: "auto",
-          padding: "20px",
-          gap: "20px",
-        }}
-      >
-        <DragDropContext onDragEnd={onDragEnd}>
-          {Object.entries(columns).map(([columnId, cards], idx) => {
-            const theme = colors[idx % colors.length];
-            return (
-              <Droppable key={columnId} droppableId={columnId}>
-                {(provided) => (
+
+      {isMobile ? (
+        <div className="mobile-board">
+          {routes.length > 0 && (
+            <>
+              <div className="mobile-route-header">
+                <button
+                  onClick={() =>
+                    setCurrentRouteIndex((prev) =>
+                      prev === 0 ? routes.length - 1 : prev - 1,
+                    )
+                  }
+                >
+                  ←
+                </button>
+
+                <div>
+                  <h3>{currentRoute}</h3>
+                  <small>
+                    {currentRouteIndex + 1} / {routes.length}
+                  </small>
+                </div>
+
+                <button
+                  onClick={() =>
+                    setCurrentRouteIndex((prev) =>
+                      prev === routes.length - 1 ? 0 : prev + 1,
+                    )
+                  }
+                >
+                  →
+                </button>
+              </div>
+
+              <div className="mobile-route-cards">
+                {columns[currentRoute]?.map((card, index) => (
                   <div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    style={{
-                      background: theme.bg,
-                      minWidth: "250px",
-                      borderRadius: "8px",
-                      padding: "12px",
-                      display: "flex",
-                      flexDirection: "column",
-                    }}
+                    key={card.id}
+                    className="mobile-card"
+                    onClick={() => setSelectedCard(card)}
                   >
+                    {card.customers.map((c) => (
+                      <div key={c.id}>
+                        <strong>{c.name}</strong>
+
+                        <br />
+
+                        {c.phoneNumber}
+
+                        <br />
+
+                        {mealType === "lunch"
+                          ? c.LunchSpecialNormal || "Normal"
+                          : c.DinnerSpecialNormal || "Normal"}
+                      </div>
+                    ))}
+
+                    {card.mapLink && (
+                      <div
+                        style={{
+                          marginTop: 10,
+                          color: "#1976d2",
+                          fontSize: 13,
+                        }}
+                      >
+                        📍 Map Link
+                      </div>
+                    )}
+                    <div className="mobile-actions">
+                      <button
+                        className="action-btn"
+                        disabled={index === 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          if (index > 0) {
+                            reorderRoute(currentRoute, index, index - 1);
+                          }
+                        }}
+                      >
+                        ⬆️
+                      </button>
+
+                      <button
+                        className="action-btn"
+                        disabled={index === columns[currentRoute].length - 1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          if (index < columns[currentRoute].length - 1) {
+                            reorderRoute(currentRoute, index, index + 1);
+                          }
+                        }}
+                      >
+                        ⬇️
+                      </button>
+
+                      <button
+                        className="action-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMovingCard(card);
+                          setShowMoveModal(true);
+                        }}
+                      >
+                        🚚
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        // ORIGINAL DESKTOP CODE HERE
+        <div
+          style={{
+            display: "flex",
+            overflowX: "auto",
+            padding: "20px",
+            gap: "20px",
+          }}
+        >
+          <DragDropContext onDragEnd={onDragEnd}>
+            {Object.entries(columns).map(([columnId, cards], idx) => {
+              const theme = colors[idx % colors.length];
+              return (
+                <Droppable key={columnId} droppableId={columnId}>
+                  {(provided) => (
                     <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
                       style={{
-                        background: theme.header,
-                        color: "#fff",
-                        padding: "8px",
-                        borderRadius: "6px",
-                        fontWeight: "bold",
-                        textAlign: "center",
-                        marginBottom: "12px",
+                        background: theme.bg,
+                        minWidth: "250px",
+                        borderRadius: "8px",
+                        padding: "12px",
+                        display: "flex",
+                        flexDirection: "column",
                       }}
                     >
-                      {columnId} ({cards.length})
-                    </div>
-                    {cards.map((card, index) => (
-                      <Draggable
-                        key={card.id}
-                        draggableId={card.id}
-                        index={index}
+                      <div
+                        style={{
+                          background: theme.header,
+                          color: "#fff",
+                          padding: "8px",
+                          borderRadius: "6px",
+                          fontWeight: "bold",
+                          textAlign: "center",
+                          marginBottom: "12px",
+                        }}
                       >
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            onClick={() => setSelectedCard(card)}
-                            style={{
-                              padding: "10px",
-                              marginBottom: "8px",
-                              borderRadius: "6px",
-                              background: "#fff",
-                              boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-                              cursor: "pointer",
-                              ...provided.draggableProps.style,
-                            }}
-                          >
-                            {card.customers.map((c) => (
-                              <div key={c.id}>
-                                {c.name} - {c.phoneNumber || "No phone"} -{" "}
-                                {mealType === "lunch"
-                                  ? c.LunchSpecialNormal || "Normal"
-                                  : c.DinnerSpecialNormal || "Normal"}
-                              </div>
-                            ))}
-                            {card.mapLink && (
-                              <div
-                                style={{
-                                  marginTop: "4px",
-                                  fontSize: "0.9em",
-                                  color: "#1976d2",
-                                }}
-                              >
-                                {card.mapLink}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            );
-          })}
-        </DragDropContext>
-      </div>
+                        {columnId} ({cards.length})
+                      </div>
+                      {cards.map((card, index) => (
+                        <Draggable
+                          key={card.id}
+                          draggableId={card.id}
+                          index={index}
+                        >
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              onClick={() => setSelectedCard(card)}
+                              style={{
+                                padding: "10px",
+                                marginBottom: "8px",
+                                borderRadius: "6px",
+                                background: "#fff",
+                                boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                                cursor: "pointer",
+                                ...provided.draggableProps.style,
+                              }}
+                            >
+                              {card.customers.map((c) => (
+                                <div key={c.id}>
+                                  {c.name} - {c.phoneNumber || "No phone"} -{" "}
+                                  {mealType === "lunch"
+                                    ? c.LunchSpecialNormal || "Normal"
+                                    : c.DinnerSpecialNormal || "Normal"}
+                                </div>
+                              ))}
+                              {card.mapLink && (
+                                <div
+                                  style={{
+                                    marginTop: "4px",
+                                    fontSize: "0.9em",
+                                    color: "#1976d2",
+                                  }}
+                                >
+                                  {card.mapLink}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              );
+            })}
+          </DragDropContext>
+        </div>
+      )}
+      {showMoveModal && movingCard && (
+        <div
+          style={modalBackdropStyle}
+          onClick={() => {
+            setShowMoveModal(false);
+            setMovingCard(null);
+          }}
+        >
+          <div style={modalBoxStyle} onClick={(e) => e.stopPropagation()}>
+            <h2>Move Customer</h2>
+
+            <p>Choose destination route</p>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              {routes
+                .filter((route) => route !== currentRoute)
+                .map((route) => (
+                  <button
+                    key={route}
+                    style={{
+                      ...buttonStyle,
+                      background: "#2196F3",
+                      color: "#fff",
+                    }}
+                    onClick={() => {
+                      moveCardToRoute(movingCard, currentRoute, route);
+
+                      setShowMoveModal(false);
+                      setMovingCard(null);
+                    }}
+                  >
+                    {route}
+                  </button>
+                ))}
+            </div>
+
+            <button
+              style={{
+                ...buttonStyle,
+                background: "#f44336",
+                color: "#fff",
+                marginTop: "15px",
+              }}
+              onClick={() => {
+                setShowMoveModal(false);
+                setMovingCard(null);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {selectedCard && (

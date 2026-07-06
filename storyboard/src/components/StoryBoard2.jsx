@@ -275,27 +275,9 @@ function App({ isPublish, isFetchAllCustomers }) {
 
   return (
     <div className="app">
-      <div
-        className="header"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          width: "100%",
-          background: "#fff",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-        }}
-      >
+      <div className="header">
         {/* Toggle Meal Type */}
-        <div
-          style={{
-            padding: "10px",
-            display: "flex",
-            gap: "10px",
-            alignItems: "center",
-
-            width: "100%",
-          }}
-        >
+        <div className="header-left">
           <span style={{ fontWeight: "bold" }}>Choose Meal:</span>
           <button
             style={{
@@ -320,15 +302,7 @@ function App({ isPublish, isFetchAllCustomers }) {
             Dinner
           </button>
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            alignItems: "center",
-            width: "100%",
-            justifyContent: "flex-end",
-          }}
-        >
+        <div className="header-right">
           <label
             style={{
               display: "inline-flex",

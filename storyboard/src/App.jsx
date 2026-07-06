@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import StoryBoard from "./components/StoryBoard";
 import StoryBoard2 from "./components/StoryBoard2";
+import "./App.css";
 
 import { useState } from "react";
 
@@ -8,16 +9,10 @@ function App() {
   const [isPublish, setIsPublish] = useState(false);
   const [isFetchAllCustomers, setIsFetchAllCustomers] = useState(false);
   return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <h1>Kanban Story Board</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+    <div className="app-container">
+      <div className="header">
+        <h1 className="page-title">The Dabba Central</h1>
+        <div className="header-actions">
           <label
             style={{
               display: "inline-flex",
