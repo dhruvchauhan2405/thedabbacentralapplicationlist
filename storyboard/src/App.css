@@ -44,3 +44,53 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.app-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 12px;
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-actions {
+    justify-content: center;
+  }
+}
+
+.page-title {
+  margin: 0;
+  font-size: 40px;
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 30px;
+    text-align: center;
+  }
+}

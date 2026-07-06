@@ -273,29 +273,41 @@ function App({ isPublish, isFetchAllCustomers }) {
 
   if (error) return <p className="error">{error}</p>;
 
+  const generateServingListText = () => {
+    let text = "";
+
+    THALI_TYPE_SUPPORTED.forEach((thaliType) => {
+      const thaliCustomers = customers.filter((c) => c.thaliType === thaliType);
+
+      if (thaliCustomers.length === 0) return;
+
+      text += `*${thaliType}*\n`;
+
+      thaliCustomers.forEach((c, index) => {
+        text += `${index + 1}. ${c.name}`;
+
+        if (c.customisation) {
+          text += ` - ${c.customisation}`;
+        }
+
+        if (c.poster) {
+          text += ` - Poster`;
+        }
+
+        text += "\n";
+      });
+
+      text += "\n";
+    });
+
+    return text;
+  };
+
   return (
     <div className="app">
-      <div
-        className="header"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          width: "100%",
-          background: "#fff",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-        }}
-      >
+      <div className="header">
         {/* Toggle Meal Type */}
-        <div
-          style={{
-            padding: "10px",
-            display: "flex",
-            gap: "10px",
-            alignItems: "center",
-
-            width: "100%",
-          }}
-        >
+        <div className="header-left">
           <span style={{ fontWeight: "bold" }}>Choose Meal:</span>
           <button
             style={{
@@ -320,15 +332,7 @@ function App({ isPublish, isFetchAllCustomers }) {
             Dinner
           </button>
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            alignItems: "center",
-            width: "100%",
-            justifyContent: "flex-end",
-          }}
-        >
+        <div className="header-right">
           <label
             style={{
               display: "inline-flex",
@@ -548,12 +552,50 @@ function App({ isPublish, isFetchAllCustomers }) {
                   ),
               )}
             </div>
-            <button
-              className="btn close-btn"
-              onClick={() => setShowModal(false)}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                gap: "10px",
+                marginTop: "15px",
+                flexWrap: "wrap",
+              }}
             >
-              Close
-            </button>
+              <button
+                className="btn"
+                style={{
+                  background: "#25D366",
+                  color: "white",
+                }}
+                onClick={() => {
+                  const message = generateServingListText();
+
+                  window.open(
+                    `https://wa.me/?text=${encodeURIComponent(message)}`,
+                    "_blank",
+                  );
+                }}
+              >
+                💬 WhatsApp
+              </button>
+
+              <button
+                className="btn"
+                onClick={() => {
+                  navigator.clipboard.writeText(generateServingListText());
+                  alert("Copied!");
+                }}
+              >
+                📋 Copy
+              </button>
+
+              <button
+                className="btn close-btn"
+                onClick={() => setShowModal(false)}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
